@@ -265,15 +265,20 @@ public class SpellCaster
             return $"{wizard.Name}'s Subversion fails to cast. ({chance}% chance)";
         }
 
-        // Subversion: roll against magic resistance. Higher resistance = harder.
+        // Subversion: roll against MANOEUVRE, not magic resistance.
+        // From Z80 at 0x85B4: LD E,0x13 (Manoeuvre), then
+        //   threshold = manoeuvre + 1
+        //   if random(0-9) < threshold → SUCCESS
+        // Higher manoeuvre = EASIER to subvert (more independent-minded).
+        int threshold = creature.Stats.Manoeuvre + 1;
         int roll = _game.Rng.Next(10);
         spell.IsUsed = true;
-        if (roll > creature.Stats.MagicResistance)
+        if (roll < threshold)
         {
             creature.OwnerWizardId = wizard.Id;
-            return $"{creature.Stats.Name} is now under {wizard.Name}'s control!";
+            return $"{creature.Stats.Name} is now under {wizard.Name}'s control! (rolled {roll} vs threshold {threshold})";
         }
-        return $"{creature.Stats.Name} resists subversion.";
+        return $"{creature.Stats.Name} resists subversion. (rolled {roll} vs threshold {threshold})";
     }
 
     private string CastRaiseDead(Wizard wizard, Spell spell, int tx, int ty)

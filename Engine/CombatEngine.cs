@@ -1,5 +1,6 @@
 namespace Chaos.Engine;
 
+using Chaos.Enums;
 using Chaos.Models;
 
 /// <summary>
@@ -146,6 +147,16 @@ public class CombatEngine
             targetIsUndead = defenderCreature.Stats.IsUndead;
         }
         else return "No target found.";
+
+        // ── SHELTER BONUS ───────────────────────────────────────────
+        // From Z80 at 0xB232: BIT 3,(HL) tests the shelter flag for
+        // the defender's cell. If set, defence modifier += 3.
+        // Bit 3 is set by OR 0x08 at 0x84F3 when a castle/citadel is placed.
+        var defenderCell = _game.Board[tx, ty];
+        if (defenderCell.Content is CellContent.MagicCastle or CellContent.DarkCitadel)
+        {
+            dDefence += 3;
+        }
 
         // ── UNDEAD MELEE IMMUNITY ───────────────────────────────────
         // From Z80 at 0xB23D: if target is undead AND attacker is NOT
