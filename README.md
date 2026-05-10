@@ -89,8 +89,8 @@ Any creature can be cast as an illusion (100% success) but is destroyed by Disbe
 
 - [x] Gooey Blob / Magic Fire spreading each turn
 - [x] Line-of-sight for ranged attacks
-- [ ] Magic Wood granting new spells (including Turmoil)
+- [x] Magic Wood granting new spells (including Turmoil)
 - [ ] Verify remaining 5 wizard starting positions from binary
 - [ ] Smarter AI (target selection, retreat, spell choice)
-- [ ] Graphical UI (MonoGame, Godot, or WPF)
+- [ ] Graphical UI (MonoGame, WinForms, or SDL)
 - [ ] Original Spectrum character graphics as sprites
