@@ -1,6 +1,6 @@
 # Chaos: The Battle of Wizards — C# Port
 
-A faithful port of Julian Gollop's classic 1985 ZX Spectrum game.
+A hopefully faithful port of Julian Gollop's classic 1985 ZX Spectrum game using Claude.ai to do the heavy lifting.
 All creature stats and spell data verified against the original Z80 binary.
 
 ## Building & Running
@@ -9,7 +9,7 @@ All creature stats and spell data verified against the original Z80 binary.
 dotnet run --project Chaos
 ```
 
-Requires .NET 8.0 SDK.
+Requires .NET 8.0 SDK or higher.
 
 ## Project Structure
 
@@ -46,6 +46,7 @@ for the complete audit trail, including:
 - Wizard starting positions at address 0x8A56
 
 Key corrections from the Z80 binary (vs secondary sources):
+
 - **Board is 15×10**, not 10×10
 - **MagicResistance and Manoeuvre were swapped** in every source I checked
 - **All non-creature casting chances were inflated** (e.g. Lightning is 90%, not 100%)
@@ -63,7 +64,7 @@ The core game loop has two passes each round:
 1. **Spell selection** — each wizard picks a spell (or passes)
 2. **Cast & move** — each wizard casts, then moves themselves and all owned creatures
 
-Combat is simple: `random(0–7) + attack` vs `random(0–7) + defence`. One hit kills.
+Combat is simple: `random(0-10) + attack` vs `random(0–10) + defence`. One hit kills.
 The world alignment (Law ↔ Chaos) shifts as spells are cast, affecting future casting chances.
 Any creature can be cast as an illusion (100% success) but is destroyed by Disbelieve.
 
@@ -86,8 +87,8 @@ Any creature can be cast as an illusion (100% success) but is destroyed by Disbe
 
 ## Next Steps
 
-- [ ] Gooey Blob / Magic Fire spreading each turn
-- [ ] Line-of-sight for ranged attacks
+- [x] Gooey Blob / Magic Fire spreading each turn
+- [x] Line-of-sight for ranged attacks
 - [ ] Magic Wood granting new spells (including Turmoil)
 - [ ] Verify remaining 5 wizard starting positions from binary
 - [ ] Smarter AI (target selection, retreat, spell choice)
