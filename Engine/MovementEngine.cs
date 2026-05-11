@@ -208,6 +208,10 @@ public class MovementEngine
             return true;
         if (cell.Content == CellContent.Creature && cell.Creature?.OwnerWizardId != myWizardId)
             return true;
+        // Terrain can be attacked by moving into it
+        if (cell.Content is CellContent.GooeyBlob or CellContent.MagicFire
+            or CellContent.ShadowWood or CellContent.MagicTree)
+            return true;
         return false;
     }
 }

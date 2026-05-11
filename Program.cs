@@ -3,6 +3,7 @@ using Chaos.Enums;
 using Chaos.Models;
 using Chaos.UI;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
@@ -26,6 +27,7 @@ var spellCaster = new SpellCaster(game, combat);
 var movement = new MovementEngine(game, combat);
 var spreading = new SpreadingEngine(game);
 var magicWood = new MagicWoodEngine(game);
+var shadowWood = new ShadowWoodEngine(game, combat);
 
 // ── Game setup ──────────────────────────────────────────────────────
 
@@ -115,6 +117,45 @@ while (!gameOver)
             }
 
             Console.WriteLine(castResult);
+
+            // Handle multi-placement spells (Wall ×4, Magic Wood ×8, etc.)
+            while (spellCaster.RemainingPlacements > 0)
+            {
+                renderer.DrawBoard(game);
+                Console.WriteLine($"{spellCaster.RemainingPlacements} placements remaining. Enter coordinates or 'done' to stop.");
+                Console.Write("Target X: ");
+                string? input = Console.ReadLine()?.Trim().ToLower();
+                if (input == "done" || input == "d" || string.IsNullOrEmpty(input))
+                {
+                    spellCaster.ClearPlacements();
+                    break;
+                }
+                if (!int.TryParse(input, out int px) || px < 0 || px >= GameBoard.Width)
+                {
+                    Console.WriteLine("Invalid coordinate.");
+                    continue;
+                }
+                Console.Write("Target Y: ");
+                input = Console.ReadLine()?.Trim();
+                if (!int.TryParse(input, out int py) || py < 0 || py >= GameBoard.Height)
+                {
+                    Console.WriteLine("Invalid coordinate.");
+                    continue;
+                }
+
+                string? placeError = spellCaster.PlaceSingleTerrain(
+                    wizard, wizard.SelectedSpell!, px, py, spellCaster.RemainingTerrain);
+                if (placeError != null)
+                {
+                    Console.WriteLine(placeError);
+                }
+                else
+                {
+                    Console.WriteLine($"Placed at ({px},{py}).");
+                    spellCaster.DecrementPlacements();
+                }
+            }
+
             Console.WriteLine("\nPress any key...");
             Console.ReadKey(true);
         }
@@ -161,6 +202,19 @@ while (!gameOver)
             renderer.DrawBoard(game);
             Console.ForegroundColor = ConsoleColor.Red;
             foreach (var msg in spreadMessages)
+                Console.WriteLine(msg);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("\nPress any key...");
+            Console.ReadKey(true);
+        }
+
+        // Shadow Wood attacks adjacent non-undead enemies
+        var woodAttackMessages = shadowWood.AttackAll();
+        if (woodAttackMessages.Count > 0)
+        {
+            renderer.DrawBoard(game);
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            foreach (var msg in woodAttackMessages)
                 Console.WriteLine(msg);
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("\nPress any key...");
@@ -334,6 +388,60 @@ void ChooseSpellForAI(Wizard wizard, GameState game)
     wizard.SelectedSpell = available.FirstOrDefault();
 }
 
+/// <summary>
+/// AI spell selection — matches the original Z80 logic at 0x93A0–0x9480.
+///
+/// The original AI is deliberately simple:
+///   1. Iterate spells from last to first (strongest creatures last)
+///   2. Pick the last creature spell with acceptable casting chance
+///   3. If chance is low (< 40%), cast as illusion instead
+///   4. If no creature spells, pick the first available non-creature spell
+///   5. Never uses Disbelieve (the original AI doesn't Disbelieve!)
+///
+/// AI difficulty (1–8) only modifies the wizard's combat stats
+/// via an "ability" value added to casting chances. It does NOT
+/// change the decision logic.
+/// </summary>
+void ChooseSpellForAIOriginal(Chaos.Models.Wizard wizard, GameState game)
+{
+    var available = wizard.Spells
+        .Where(s => !s.IsUsed && s.Name != "Disbelieve")
+        .ToList();
+
+    if (available.Count == 0)
+    {
+        wizard.SelectedSpell = null;
+        return;
+    }
+
+    // Prefer creature spells — pick the last one in the list
+    // (strongest creatures are dealt later in the hand).
+    // The original iterates in display order and keeps overwriting
+    // the selection, so the last valid spell wins.
+    Spell? bestCreature = null;
+    foreach (var spell in available)
+    {
+        if (spell.Category == SpellCategory.Creature)
+            bestCreature = spell;
+    }
+
+    if (bestCreature != null)
+    {
+        wizard.SelectedSpell = bestCreature;
+        int chance = bestCreature.GetEffectiveCastingChance(game.WorldAlignment);
+
+        // Cast as illusion if real chance is poor.
+        // The original checks the effective chance against a threshold.
+        wizard.CastingAsIllusion = chance < 40;
+        return;
+    }
+
+    // No creature spells — pick the first available non-creature spell.
+    // The original doesn't have sophisticated prioritisation here;
+    // it just takes whatever is next in the list.
+    wizard.SelectedSpell = available.FirstOrDefault();
+}
+
 string CastSpellForHuman(Chaos.Models.Wizard wizard, GameState game, SpellCaster caster)
 {
     var spell = wizard.SelectedSpell!;
@@ -385,15 +493,42 @@ string CastSpellForAI(Chaos.Models.Wizard wizard, GameState game, SpellCaster ca
         return $"{wizard.Name}'s {spell.Name} has no targets in range.";
     }
 
-    // Terrain spells: find an empty square within range
+    // Terrain spells: place within range, then auto-place remaining
     if (spell.Category is SpellCategory.MagicTree or SpellCategory.MagicFire
-                       or SpellCategory.MagicBlob)
+                       or SpellCategory.MagicBlob
+        || spell.Name is "Wall" or "Magic Castle" or "Dark Citadel")
     {
-        // Place near wizard, within spell range
         foreach (var (nx, ny) in game.Board.GetAdjacentCells(wizard.X, wizard.Y))
         {
             if (game.Board.IsEmpty(nx, ny))
-                return caster.CastSpell(wizard, nx, ny);
+            {
+                string result = spellCaster.CastSpell(wizard, nx, ny);
+
+                // Auto-place remaining items near wizard
+                while (spellCaster.RemainingPlacements > 0)
+                {
+                    bool placed = false;
+                    for (int radius = 1; radius <= spell.Range && !placed; radius++)
+                    {
+                        for (int ax = wizard.X - radius; ax <= wizard.X + radius && !placed; ax++)
+                            for (int ay = wizard.Y - radius; ay <= wizard.Y + radius && !placed; ay++)
+                            {
+                                if (!game.Board.InBounds(ax, ay)) continue;
+                                if (GameBoard.Distance(wizard.X, wizard.Y, ax, ay) != radius) continue;
+                                string? err = spellCaster.PlaceSingleTerrain(
+                                    wizard, spell, ax, ay, spellCaster.RemainingTerrain);
+                                if (err == null)
+                                {
+                                    spellCaster.DecrementPlacements();
+                                    placed = true;
+                                }
+                            }
+                    }
+                    if (!placed) break; // no valid positions left
+                }
+                spellCaster.ClearPlacements();
+                return result;
+            }
         }
         return $"{wizard.Name} has no room to cast {spell.Name}!";
     }
@@ -529,6 +664,192 @@ void DoAIMovement(Chaos.Models.Wizard wizard, GameState game, MovementEngine mov
     System.Threading.Thread.Sleep(500); // Brief pause so human can see AI moves
 }
 
+/// <summary>
+/// AI movement — matches the original Z80 logic at 0xAC36–0xB100.
+///
+/// The original AI movement works as follows:
+///   1. For each creature/wizard owned by this player:
+///   2. Find the nearest ENEMY WIZARD (not creature!) by scanning
+///      the entire board (routine at 0xB50E).
+///   3. For each movement step, evaluate all 8 adjacent cells and
+///      pick the one that minimizes Chebyshev distance to the
+///      nearest enemy wizard (routine at 0xB3F0).
+///   4. If the chosen cell contains an enemy → melee attack.
+///   5. If the creature has ranged combat and an enemy is in range
+///      with clear LOS → fire ranged attack (at 0xADE0).
+///   6. If engaged (adjacent to an enemy), attack rather than move.
+///
+/// The AI does NOT target enemy creatures. It goes straight for
+/// wizards. Kill the wizard = all their creatures vanish.
+/// </summary>
+void DoAIMovementOriginal(Chaos.Models.Wizard wizard, GameState game, MovementEngine mover)
+{
+    // Find all enemy wizards (the ONLY targets the AI cares about)
+    var enemyWizards = game.GetAliveWizards()
+        .Where(w => w.Id != wizard.Id)
+        .ToList();
+
+    if (enemyWizards.Count == 0) return;
+
+    // Move the wizard itself
+    MoveUnitTowardNearestWizard(wizard.X, wizard.Y, wizard.EffectiveMovement,
+        wizard.CanFly, wizard.Id, enemyWizards, game, mover, isWizard: true, wizard: wizard);
+
+    // Move each owned creature
+    foreach (var creature in game.GetCreaturesOwnedBy(wizard.Id).ToList())
+    {
+        if (creature.HasMoved) continue;
+
+        // Ranged attack first (if the creature has ranged combat)
+        if (creature.Stats.RangedCombat > 0 && !creature.HasAttacked)
+        {
+            TryRangedAttack(creature, game);
+        }
+
+        MoveUnitTowardNearestWizard(creature.X, creature.Y, creature.Stats.Movement,
+            creature.Stats.IsFlying, creature.OwnerWizardId, enemyWizards,
+            game, mover, isWizard: false, creature: creature);
+    }
+
+    System.Threading.Thread.Sleep(500);
+}
+
+/// <summary>
+/// Move a single unit step-by-step toward the nearest enemy wizard.
+/// Each step picks the adjacent cell that minimizes Chebyshev distance
+/// to the closest enemy wizard.
+/// </summary>
+void MoveUnitTowardNearestWizard(
+    int startX, int startY, int movement, bool canFly, int ownerId,
+    List<Chaos.Models.Wizard> enemyWizards, GameState game, MovementEngine mover,
+    bool isWizard, Chaos.Models.Wizard? wizard = null, BoardCreature? creature = null)
+{
+    int curX = startX, curY = startY;
+    int stepsLeft = movement;
+
+    while (stepsLeft > 0)
+    {
+        // Find nearest enemy wizard from current position
+        var nearest = enemyWizards
+            .OrderBy(w => GameBoard.Distance(curX, curY, w.X, w.Y))
+            .FirstOrDefault();
+        if (nearest == null) break;
+
+        int bestDist = GameBoard.Distance(curX, curY, nearest.X, nearest.Y);
+        int bestX = curX, bestY = curY;
+        bool bestIsAttack = false;
+
+        // Check if engaged — if adjacent to an enemy, try to attack them
+        // rather than move away (original behavior at 0xAF2A)
+        bool engaged = game.IsAdjacentToEnemy(curX, curY, ownerId);
+        if (engaged)
+        {
+            // Attack an adjacent enemy (prefer wizards over creatures)
+            foreach (var (nx, ny) in game.Board.GetAdjacentCells(curX, curY))
+            {
+                var cell = game.Board[nx, ny];
+                if (cell.Content == CellContent.Wizard && cell.Wizard?.Id != ownerId)
+                {
+                    bestX = nx; bestY = ny; bestIsAttack = true;
+                    break;
+                }
+                if (cell.Content == CellContent.Creature && cell.Creature?.OwnerWizardId != ownerId)
+                {
+                    bestX = nx; bestY = ny; bestIsAttack = true;
+                    // Don't break — keep looking for a wizard target
+                }
+            }
+
+            if (bestIsAttack)
+            {
+                string result;
+                if (isWizard)
+                    result = mover.MoveWizard(wizard!, bestX, bestY);
+                else
+                    result = mover.MoveCreature(creature!, bestX, bestY);
+                Console.WriteLine(result);
+                break;
+            }
+            break; // Engaged but can't attack (e.g. non-undead vs undead) — stuck
+        }
+
+        // Evaluate all 8 adjacent cells — pick the one that minimizes
+        // distance to nearest enemy wizard (Chebyshev, matching 0xB3F0)
+        foreach (var (nx, ny) in game.Board.GetAdjacentCells(curX, curY))
+        {
+            var cell = game.Board[nx, ny];
+            int dist = GameBoard.Distance(nx, ny, nearest.X, nearest.Y);
+
+            // Can we enter this cell?
+            bool canEnter = cell.IsPassable
+                         || (cell.Content == CellContent.Wizard && cell.Wizard?.Id != ownerId)
+                         || (cell.Content == CellContent.Creature && cell.Creature?.OwnerWizardId != ownerId);
+
+            // Flying units can traverse occupied squares but must land on empty/enemy
+            if (!canEnter && canFly && cell.Content != CellContent.Wall)
+                canEnter = true;
+
+            if (canEnter && dist < bestDist)
+            {
+                bestDist = dist;
+                bestX = nx;
+                bestY = ny;
+                bestIsAttack = (cell.Content == CellContent.Wizard && cell.Wizard?.Id != ownerId)
+                            || (cell.Content == CellContent.Creature && cell.Creature?.OwnerWizardId != ownerId);
+            }
+        }
+
+        // No improvement possible — stop
+        if (bestX == curX && bestY == curY) break;
+
+        // Execute the move/attack
+        string moveResult;
+        if (isWizard)
+            moveResult = mover.MoveWizard(wizard!, bestX, bestY);
+        else
+            moveResult = mover.MoveCreature(creature!, bestX, bestY);
+        Console.WriteLine(moveResult);
+
+        // Update position
+        if (isWizard) { curX = wizard!.X; curY = wizard.Y; }
+        else { curX = creature!.X; curY = creature!.Y; }
+
+        stepsLeft--;
+
+        // Attack ends movement
+        if (bestIsAttack || (creature != null && creature.HasAttacked)) break;
+    }
+}
+
+/// <summary>
+/// Try a ranged attack on the nearest enemy in range with LOS.
+/// The original at 0xADE0 checks for enemies within range and fires.
+/// </summary>
+void TryRangedAttack(BoardCreature creature, GameState game)
+{
+    if (creature.Stats.RangedCombat <= 0 || creature.HasAttacked) return;
+
+    var targets = LineOfSight.GetVisibleTargets(
+        game.Board, creature.X, creature.Y,
+        creature.Stats.Range, creature.OwnerWizardId);
+
+    if (targets.Count == 0) return;
+
+    // Prefer wizard targets over creature targets (matching AI priority)
+    var wizardTarget = targets
+        .Where(t => game.Board[t.X, t.Y].Content == CellContent.Wizard)
+        .OrderBy(t => GameBoard.Distance(creature.X, creature.Y, t.X, t.Y))
+        .FirstOrDefault();
+
+    var target = wizardTarget != default
+        ? wizardTarget
+        : targets.OrderBy(t => GameBoard.Distance(creature.X, creature.Y, t.X, t.Y)).First();
+
+    string result = new CombatEngine(game).ExecuteAttack(
+        creature.X, creature.Y, target.X, target.Y, isRanged: true);
+    creature.HasAttacked = true;
+    Console.WriteLine(result);
+}
 // ── Utility ─────────────────────────────────────────────────────────
 
 static int ReadInt(string prompt, int min, int max)

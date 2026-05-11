@@ -118,6 +118,13 @@ public class CombatEngine
             aCombat = isRanged ? attackerWizard.RangedCombat : attackerWizard.EffectiveCombat;
             aManoeuvre = attackerWizard.Manoeuvre;
         }
+        else if (targetCell.Content is CellContent.GooeyBlob or CellContent.MagicFire
+                 or CellContent.ShadowWood or CellContent.MagicTree)
+        {
+            // Terrain has no real defence — any attack destroys it.
+            // This is how players rescue creatures trapped under Gooey Blob.
+            return _game.DestroyTerrain(tx, ty);
+        }
         else return "No attacker found.";
 
         // Determine defender stats
@@ -127,6 +134,16 @@ public class CombatEngine
         bool targetIsUndead = false;
         Wizard? defenderWizard = null;
         BoardCreature? defenderCreature = null;
+
+        // ── TERRAIN ATTACK ──────────────────────────────────────────
+        // Creatures can attack Gooey Blob and Magic Fire cells to
+        // destroy them. This is how you rescue trapped creatures.
+        if (targetCell.Content is CellContent.GooeyBlob or CellContent.MagicFire
+            or CellContent.ShadowWood or CellContent.MagicTree)
+        {
+            // Terrain has no defence — any attack destroys it
+            return _game.DestroyTerrain(tx, ty);
+        }
 
         if (targetCell.Content == Enums.CellContent.Wizard && targetCell.Wizard != null)
         {

@@ -88,13 +88,13 @@ public static class SpellDatabase
         // These have REAL range from the spell table, NOT adjacent-only.
         // Gooey Blob and Magic Fire are Chaotic (align -1), not neutral.
 
-        spells.Add(new Spell { Name = "Gooey Blob",    Category = SpellCategory.MagicBlob,  CastingChance = 80, AlignmentShift = -1, Range = 6 });
-        spells.Add(new Spell { Name = "Magic Fire",    Category = SpellCategory.MagicFire,  CastingChance = 70, AlignmentShift = -1, Range = 6 });
-        spells.Add(new Spell { Name = "Magic Wood",    Category = SpellCategory.MagicTree,  CastingChance = 70, AlignmentShift =  1, Range = 8 });
-        spells.Add(new Spell { Name = "Shadow Wood",   Category = SpellCategory.MagicTree,  CastingChance = 30, AlignmentShift = -1, Range = 8 });
-        spells.Add(new Spell { Name = "Magic Castle",  Category = SpellCategory.MagicMisc,  CastingChance = 40, AlignmentShift =  1, Range = 8 });
-        spells.Add(new Spell { Name = "Dark Citadel",  Category = SpellCategory.MagicMisc,  CastingChance = 40, AlignmentShift = -1, Range = 8 });
-        spells.Add(new Spell { Name = "Wall",          Category = SpellCategory.MagicMisc,  CastingChance = 70, AlignmentShift =  0, Range = 6 });
+        spells.Add(new Spell { Name = "Gooey Blob", Category = SpellCategory.MagicBlob, CastingChance = 80, AlignmentShift = -1, Range = 6 });
+        spells.Add(new Spell { Name = "Magic Fire", Category = SpellCategory.MagicFire, CastingChance = 70, AlignmentShift = -1, Range = 6 });
+        spells.Add(new Spell { Name = "Magic Wood", Category = SpellCategory.MagicTree, CastingChance = 70, AlignmentShift = 1, Range = 8, PlacementCount = 8 });
+        spells.Add(new Spell { Name = "Shadow Wood", Category = SpellCategory.MagicTree, CastingChance = 30, AlignmentShift = -1, Range = 8, PlacementCount = 8 });
+        spells.Add(new Spell { Name = "Magic Castle", Category = SpellCategory.MagicMisc, CastingChance = 40, AlignmentShift = 1, Range = 8 });
+        spells.Add(new Spell { Name = "Dark Citadel", Category = SpellCategory.MagicMisc, CastingChance = 40, AlignmentShift = -1, Range = 8 });
+        spells.Add(new Spell { Name = "Wall", Category = SpellCategory.MagicMisc, CastingChance = 70, AlignmentShift = 0, Range = 6, PlacementCount = 4 });
 
         // ── Ranged attack spells ────────────────────────────────────
         // Lightning: obj 98, range 4, 90%. Magic Bolt shares obj 112, range 6, 90%.

@@ -59,16 +59,24 @@ public class Spell
     /// </summary>
     public int GetEffectiveCastingChance(int worldAlignment)
     {
-        // World alignment ranges from -8 to +8.
-        // Each point of alignment match gives +1 to the tens digit of chance.
-        int modifier = AlignmentShift switch
-        {
-            > 0 => worldAlignment,      // Lawful spell benefits from lawful world
-            < 0 => -worldAlignment,     // Chaotic spell benefits from chaotic world
-            _   => 0                    // Neutral spell is unaffected
-        };
+        // Convert our percentage base to 0-10 scale
+        int baseChance = CastingChance / 10;
 
-        int effective = CastingChance + (modifier * 10);
-        return Math.Clamp(effective, 10, 100);
+        int modifier = 0;
+        if (AlignmentShift > 0 && worldAlignment > 0)
+            modifier = worldAlignment;           // Lawful spell + lawful world
+        else if (AlignmentShift < 0 && worldAlignment < 0)
+            modifier = -worldAlignment;          // Chaotic spell + chaotic world
+                                                 // Opposing or neutral → no modifier (NOT a penalty)
+
+        int effective = Math.Clamp(baseChance + modifier, 0, 9);
+        return effective;  // 0-9 scale, NOT percentage
     }
+
+    /// <summary>
+    /// How many terrain objects this spell places on the board.
+    /// Verified from Z80: Wall = 4 (at 0x9B76), Magic Wood = 8,
+    /// Shadow Wood = 8 (at 0x9ADD), Castle/Citadel = 1.
+    /// </summary>
+    public int PlacementCount { get; init; } = 1;
 }

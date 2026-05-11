@@ -102,4 +102,14 @@ public class BoardCell
     /// <summary>Is this cell currently empty and pathable?</summary>
     public bool IsPassable => Content == CellContent.Empty
                            || Content == CellContent.DeadBody;
+
+    /// <summary>
+    /// A creature trapped under a Gooey Blob. The creature is hidden
+    /// but alive. If the blob is destroyed (by attacking it), the
+    /// trapped creature is freed and reappears on this cell.
+    /// Verified from original: "any unit covered up by a gooey blob
+    /// will be able to carry on once it is uncovered."
+    /// Only Gooey Blob traps — Magic Fire kills outright.
+    /// </summary>
+    public BoardCreature? TrappedCreature { get; set; }
 }

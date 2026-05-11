@@ -76,7 +76,7 @@ public class SpellCaster
 
         // Real casting: roll against the effective casting chance
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int roll = _game.Rng.Next(100);
+        int roll = _game.Rng.Next(10);
 
         if (roll < chance)
         {
@@ -110,7 +110,7 @@ public class SpellCaster
         // Disbelieve has a 90% base casting chance (not 100% as often assumed).
         // It can fail! World alignment can modify this.
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int roll = _game.Rng.Next(100);
+        int roll = _game.Rng.Next(10);
         if (roll >= chance)
             return $"{wizard.Name}'s Disbelieve fails! ({chance}% chance, rolled {roll})";
 
@@ -146,7 +146,7 @@ public class SpellCaster
 
         // Roll to cast the spell first
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int castRoll = _game.Rng.Next(100);
+        int castRoll = _game.Rng.Next(10);
         if (castRoll >= chance)
         {
             spell.IsUsed = true;
@@ -191,7 +191,7 @@ public class SpellCaster
     private string CastEquipmentSpell(Wizard wizard, Spell spell)
     {
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int roll = _game.Rng.Next(100);
+        int roll = _game.Rng.Next(10);
         if (roll >= chance)
         {
             spell.IsUsed = true;
@@ -233,7 +233,7 @@ public class SpellCaster
     private string CastSelfBuff(Wizard wizard, Spell spell, Action applyEffect)
     {
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int roll = _game.Rng.Next(100);
+        int roll = _game.Rng.Next(10);
         if (roll >= chance)
         {
             spell.IsUsed = true;
@@ -258,7 +258,7 @@ public class SpellCaster
 
         // Roll to cast
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int castRoll = _game.Rng.Next(100);
+        int castRoll = _game.Rng.Next(10);
         if (castRoll >= chance)
         {
             spell.IsUsed = true;
@@ -292,7 +292,7 @@ public class SpellCaster
         if (!cell.HasCorpse) return "No dead body there.";
 
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int roll = _game.Rng.Next(100);
+        int roll = _game.Rng.Next(10);
         if (roll >= chance)
         {
             spell.IsUsed = true;
@@ -322,7 +322,7 @@ public class SpellCaster
         // Turmoil: randomly scatter all creatures and wizards to new positions.
         // This is one of the most dramatic spells in the game!
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
-        int roll = _game.Rng.Next(100);
+        int roll = _game.Rng.Next(10);
         if (roll >= chance)
         {
             spell.IsUsed = true;
@@ -374,16 +374,41 @@ public class SpellCaster
 
     // ── Terrain ─────────────────────────────────────────────────────
 
-    private string CastTerrainSpell(Wizard wizard, Spell spell, int tx, int ty, CellContent terrain)
+    /// <summary>
+    /// Place a single terrain object at the target position.
+    /// Called once per placement — the caller loops for multi-placement spells.
+    /// Returns null on success, or an error message on failure.
+    /// Does NOT consume the spell or roll casting chance — the caller
+    /// handles that before the placement loop begins.
+    /// </summary>
+    public string? PlaceSingleTerrain(Wizard wizard, Spell spell, int tx, int ty, CellContent terrain)
     {
-        // Terrain spells have real range from the spell table (not adjacent-only).
-        // E.g. Magic Wood range=8, Gooey Blob range=6, Wall range=6.
         int dist = GameBoard.Distance(wizard.X, wizard.Y, tx, ty);
         if (dist > spell.Range)
             return $"Target is out of range (max {spell.Range}).";
         if (!_game.Board.IsEmpty(tx, ty))
             return "That square is occupied.";
 
+        // Magic Wood and Shadow Wood: no two trees can be adjacent.
+        // Verified from instructions: "No two trees can be adjacent."
+        if (terrain is CellContent.MagicTree or CellContent.ShadowWood)
+        {
+            foreach (var (nx, ny) in _game.Board.GetAdjacentCells(tx, ty))
+            {
+                var adj = _game.Board[nx, ny];
+                if (adj.Content is CellContent.MagicTree or CellContent.ShadowWood)
+                    return "Trees cannot be placed adjacent to other trees.";
+            }
+        }
+
+        _game.Board[tx, ty].Content = terrain;
+        _game.Board[tx, ty].OwnerWizardId = wizard.Id;
+        return null; // success
+    }
+
+    private string CastTerrainSpell(Wizard wizard, Spell spell, int tx, int ty, CellContent terrain)
+    {
+        // Roll casting chance once for the whole spell
         int chance = spell.GetEffectiveCastingChance(_game.WorldAlignment);
         int roll = _game.Rng.Next(100);
         if (roll >= chance)
@@ -392,12 +417,43 @@ public class SpellCaster
             return $"{wizard.Name}'s {spell.Name} fails.";
         }
 
-        _game.Board[tx, ty].Content = terrain;
-        _game.Board[tx, ty].OwnerWizardId = wizard.Id;
+        // Place the first object at the targeted position
+        string? error = PlaceSingleTerrain(wizard, spell, tx, ty, terrain);
+        if (error != null)
+        {
+            spell.IsUsed = true;
+            return error;
+        }
+
         ShiftWorldAlignment(spell);
         spell.IsUsed = true;
-        return $"{wizard.Name} casts {spell.Name}!";
+
+        if (spell.PlacementCount <= 1)
+            return $"{wizard.Name} casts {spell.Name}!";
+
+        // Multi-placement: remaining placements handled by the caller
+        // (Program.cs for humans, AI casting for computer)
+        // Store how many remain so the caller can loop
+        _remainingPlacements = spell.PlacementCount - 1;
+        _remainingTerrain = terrain;
+        return $"{wizard.Name} casts {spell.Name}! Place {_remainingPlacements} more.";
     }
+
+    // State for multi-placement spells (read by Program.cs)
+    private int _remainingPlacements = 0;
+    private CellContent _remainingTerrain = CellContent.Empty;
+
+    /// <summary>How many more placements remain after the initial cast.</summary>
+    public int RemainingPlacements => _remainingPlacements;
+
+    /// <summary>What terrain type is being placed.</summary>
+    public CellContent RemainingTerrain => _remainingTerrain;
+
+    /// <summary>Call after each additional placement to decrement the counter.</summary>
+    public void DecrementPlacements() => _remainingPlacements--;
+
+    /// <summary>Cancel remaining placements (player pressed done).</summary>
+    public void ClearPlacements() => _remainingPlacements = 0;
 
     // ── Alignment spells ───────────────────────────────────────────
 

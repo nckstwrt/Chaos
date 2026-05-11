@@ -263,4 +263,41 @@ public class GameState
         foreach (var c in owned)
             RemoveCreature(c);
     }
+
+    /// <summary>
+    /// Destroy a terrain cell (blob/fire/tree) and free any trapped creature.
+    /// Called when a creature successfully attacks a terrain cell.
+    /// Verified from original: "creatures can be recovered by attacking
+    /// a Gooey Blob" — the trapped creature reappears on the cell.
+    /// </summary>
+    public string DestroyTerrain(int x, int y)
+    {
+        var cell = Board[x, y];
+        string terrainName = cell.Content switch
+        {
+            CellContent.GooeyBlob => "Gooey Blob",
+            CellContent.MagicFire => "Magic Fire",
+            CellContent.MagicTree => "Magic Wood",
+            CellContent.ShadowWood => "Shadow Wood",
+            _ => "terrain"
+        };
+
+        var freed = cell.TrappedCreature;
+        cell.TrappedCreature = null;
+        cell.OwnerWizardId = -1;
+
+        if (freed != null)
+        {
+            // Restore the trapped creature to the board
+            cell.Content = CellContent.Creature;
+            cell.Creature = freed;
+            return $"The {terrainName} is destroyed! {freed.Stats.Name} is freed!";
+        }
+        else
+        {
+            cell.Content = CellContent.Empty;
+            cell.Creature = null;
+            return $"The {terrainName} is destroyed.";
+        }
+    }
 }
