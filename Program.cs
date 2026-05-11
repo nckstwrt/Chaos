@@ -204,38 +204,134 @@ void ChooseSpellForHuman(Chaos.Models.Wizard wizard, GameState game)
     Console.ReadKey(true);
 }
 
-void ChooseSpellForAI(Chaos.Models.Wizard wizard, GameState game)
+void ChooseSpellForAI(Wizard wizard, GameState game)
 {
-    // Simple AI: pick the strongest unused creature spell, or a random attack spell
     var available = wizard.Spells
         .Where(s => !s.IsUsed || s.Name == "Disbelieve")
-        .Where(s => s.Name != "Disbelieve") // Don't choose Disbelieve randomly
+        .Where(s => s.Name != "Disbelieve")
         .ToList();
 
-    if (available.Count == 0)
+    if (available.Count == 0) { wizard.SelectedSpell = null; return; }
+
+    // 1. If adjacent to enemy wizard with no creatures protecting us, 
+    //    prioritise attack spells or defensive equipment
+    var nearbyEnemyWizards = game.GetAliveWizards()
+        .Where(w => w.Id != wizard.Id)
+        .Where(w => GameBoard.Distance(wizard.X, wizard.Y, w.X, w.Y) <= 2)
+        .ToList();
+
+    // 2. If we have no creatures, summon one (prefer mounts for mobility)
+    var ownedCreatures = game.GetCreaturesOwnedBy(wizard.Id);
+    if (ownedCreatures.Count == 0)
     {
-        wizard.SelectedSpell = null;
+        var mounts = available
+            .Where(s => s.Category == SpellCategory.Creature && s.CreatureData!.IsMount)
+            .OrderByDescending(s => s.CastingChance)
+            .FirstOrDefault();
+        if (mounts != null)
+        {
+            wizard.SelectedSpell = mounts;
+            wizard.CastingAsIllusion = mounts.GetEffectiveCastingChance(game.WorldAlignment) < 40;
+            return;
+        }
+    }
+
+    // 3. Disbelieve any suspiciously powerful creature nearby
+    //    (creatures summoned on the same turn they appeared = likely illusion)
+    // For now, simple heuristic: Disbelieve dragons and vampires
+    var suspects = game.Creatures
+        .Where(c => c.OwnerWizardId != wizard.Id)
+        .Where(c => c.Stats.Combat >= 6 || c.Stats.IsFlying)
+        .Where(c => GameBoard.Distance(wizard.X, wizard.Y, c.X, c.Y) <= 5)
+        .OrderByDescending(c => c.Stats.Combat + c.Stats.Defence)
+        .FirstOrDefault();
+    if (suspects != null)
+    {
+        var disbelieve = available.FirstOrDefault(s => s.Name == "Disbelieve");
+        if (disbelieve == null) disbelieve = wizard.Spells.First(s => s.Name == "Disbelieve");
+        wizard.SelectedSpell = disbelieve;
         return;
     }
 
-    // Prefer creature spells with good stats
+    // 4. Cast attack spells on enemy wizards if in range
+    var attackSpells = available
+        .Where(s => s.Category == SpellCategory.MagicAttack)
+        .OrderByDescending(s => s.AttackPower)
+        .ToList();
+    foreach (var spell in attackSpells)
+    {
+        var target = game.GetAliveWizards()
+            .Where(w => w.Id != wizard.Id)
+            .Where(w => GameBoard.Distance(wizard.X, wizard.Y, w.X, w.Y) <= spell.Range)
+            .Where(w => LineOfSight.HasClearPath(game.Board, wizard.X, wizard.Y, w.X, w.Y))
+            .OrderBy(w => w.Manoeuvre)  // target low-manoeuvre wizards first
+            .FirstOrDefault();
+        if (target != null)
+        {
+            wizard.SelectedSpell = spell;
+            return;
+        }
+    }
+
+    // 5. Equipment spells if we have none yet
+    if (!wizard.HasMagicSword && !wizard.HasMagicKnife)
+    {
+        var weapon = available.FirstOrDefault(s => s.Name is "Magic Sword" or "Magic Knife");
+        if (weapon != null) { wizard.SelectedSpell = weapon; return; }
+    }
+    if (!wizard.HasMagicShield && !wizard.HasMagicArmour)
+    {
+        var armour = available.FirstOrDefault(s => s.Name is "Magic Armour" or "Magic Shield");
+        if (armour != null) { wizard.SelectedSpell = armour; return; }
+    }
+
+    // 6. Alignment spells if they'd help our hand
+    var alignSpells = available.Where(s => s.Category == SpellCategory.AlignmentSpell).ToList();
+    if (alignSpells.Count > 0)
+    {
+        // Count how many of our remaining spells benefit from each direction
+        int lawCount = available.Count(s => s.AlignmentShift > 0);
+        int chaosCount = available.Count(s => s.AlignmentShift < 0);
+        if (lawCount > chaosCount)
+        {
+            var lawSpell = alignSpells.FirstOrDefault(s => s.AlignmentShift > 0);
+            if (lawSpell != null) { wizard.SelectedSpell = lawSpell; return; }
+        }
+        else if (chaosCount > 0)
+        {
+            var chaosSpell = alignSpells.FirstOrDefault(s => s.AlignmentShift < 0);
+            if (chaosSpell != null) { wizard.SelectedSpell = chaosSpell; return; }
+        }
+    }
+
+    // 7. Subversion on powerful enemy creatures (prefer high manoeuvre targets)
+    var subversion = available.FirstOrDefault(s => s.Name == "Subversion");
+    if (subversion != null)
+    {
+        var subTarget = game.Creatures
+            .Where(c => c.OwnerWizardId != wizard.Id)
+            .Where(c => GameBoard.Distance(wizard.X, wizard.Y, c.X, c.Y) <= 7)
+            .Where(c => c.Stats.Manoeuvre >= 5)  // only subvert high-Ma (easy) targets
+            .OrderByDescending(c => c.Stats.Combat + c.Stats.Defence)
+            .FirstOrDefault();
+        if (subTarget != null) { wizard.SelectedSpell = subversion; return; }
+    }
+
+    // 8. Default: summon strongest creature we can
     var creatures = available
         .Where(s => s.Category == SpellCategory.Creature)
         .OrderByDescending(s => s.CreatureData!.Combat + s.CreatureData.Defence)
         .ToList();
-
     if (creatures.Count > 0)
     {
         wizard.SelectedSpell = creatures[0];
-        // Cast as illusion if the real chance is low
         int chance = wizard.SelectedSpell.GetEffectiveCastingChance(game.WorldAlignment);
-        wizard.CastingAsIllusion = chance < 40;
+        wizard.CastingAsIllusion = chance < 30;  // illusion if very unlikely to cast real
+        return;
     }
-    else
-    {
-        // Pick a random non-creature spell
-        wizard.SelectedSpell = available[game.Rng.Next(available.Count)];
-    }
+
+    // 9. Anything remaining
+    wizard.SelectedSpell = available.FirstOrDefault();
 }
 
 string CastSpellForHuman(Chaos.Models.Wizard wizard, GameState game, SpellCaster caster)
@@ -260,7 +356,6 @@ string CastSpellForHuman(Chaos.Models.Wizard wizard, GameState game, SpellCaster
     int ty = ReadInt("", 0, GameBoard.Height - 1);
     return caster.CastSpell(wizard, tx, ty);
 }
-
 string CastSpellForAI(Chaos.Models.Wizard wizard, GameState game, SpellCaster caster)
 {
     var spell = wizard.SelectedSpell!;

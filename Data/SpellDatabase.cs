@@ -249,8 +249,24 @@ public static class SpellDatabase
     /// Default wizard names from the original game.
     /// </summary>
     public static readonly string[] DefaultWizardNames =
-    {
+     {
         "Julian", "Gandalf", "Great Fogey", "Dyerarti",
         "Gowin", "Merlin", "Ilian Rane", "Asimono Zark"
+    };
+
+    /// <summary>
+    /// Base stats per wizard (C, D, MR, Ma), verified from Z80 binary.
+    /// All wizards have RC=0, Range=0, Movement=1.
+    /// </summary>
+    public static readonly (int Combat, int Defence, int MagicRes, int Manoeuvre)[] WizardBaseStats =
+    {
+        (1, 1, 3, 7),  // Julian
+        (1, 1, 3, 6),  // Gandalf
+        (3, 3, 5, 6),  // Great Fogey
+        (1, 2, 6, 7),  // Dyerarti
+        (2, 2, 5, 0),  // Gowin
+        (1, 4, 4, 0),  // Merlin
+        (1, 2, 4, 0),  // Ilian Rane
+        (3, 2, 6, 0),  // Asimono Zark
     };
 }

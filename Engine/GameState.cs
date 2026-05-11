@@ -67,7 +67,9 @@ public class GameState
 
         for (int i = 0; i < numWizards; i++)
         {
+
             var (sx, sy) = startPositions[i];
+            var baseStats = SpellDatabase.WizardBaseStats[i];
             var wizard = new Wizard
             {
                 Id = i,
@@ -76,6 +78,10 @@ public class GameState
                 Colour = i,
                 X = sx,
                 Y = sy,
+                Combat = baseStats.Combat,
+                Defence = baseStats.Defence,
+                MagicResistance = baseStats.MagicRes,
+                Manoeuvre = baseStats.Manoeuvre,
                 Spells = SpellDatabase.DealSpellHand(Rng)
             };
 
@@ -88,28 +94,25 @@ public class GameState
     }
 
     /// <summary>
-    /// Spread wizards around the 15×10 board.
-    /// The first 3 positions are verified from the Z80 init code at 0x8A56:
-    ///   Wizard 0: LD BC,(2,2) → (col=1, row=1) in 0-based coords
-    ///   Wizard 1: LD BC,(8,4) → (col=7, row=3)
-    ///   Wizard 2: LD BC,(2,9) → (col=1, row=8)
-    /// Positions 3–7 are estimated from symmetry and typical Chaos layouts.
-    /// The original uses 1-based coordinates internally.
+    /// Starting positions for each player count, verified from the
+    /// position table at 0x909F in the Z80 binary. Each byte encodes
+    /// row × 16 + col using stride-16 state table offsets.
+    /// Layouts are symmetric across the 15×10 board.
     /// </summary>
     private static List<(int X, int Y)> GetStartPositions(int count)
     {
-        var all = new List<(int, int)>
+        var layouts = new Dictionary<int, (int, int)[]>
         {
-            ( 1, 1),  // Wizard 0: top-left area (verified from binary)
-            ( 7, 3),  // Wizard 1: center area (verified from binary)
-            ( 1, 8),  // Wizard 2: bottom-left area (verified from binary)
-            (13, 1),  // Wizard 3: top-right area
-            (13, 8),  // Wizard 4: bottom-right area
-            ( 7, 7),  // Wizard 5: center-bottom
-            ( 4, 5),  // Wizard 6: left-center
-            (10, 5),  // Wizard 7: right-center
+            [2] = new[] { (1, 4), (13, 4) },
+            [3] = new[] { (7, 1), (1, 8), (13, 8) },
+            [4] = new[] { (1, 1), (13, 1), (1, 8), (13, 8) },
+            [5] = new[] { (7, 0), (0, 3), (14, 3), (3, 9), (11, 9) },
+            [6] = new[] { (7, 0), (0, 1), (14, 1), (0, 8), (7, 9), (14, 8) },
+            [7] = new[] { (7, 0), (1, 1), (13, 1), (0, 6), (14, 6), (4, 9), (10, 9) },
+            [8] = new[] { (0, 0), (7, 0), (14, 0), (0, 4), (14, 4), (0, 9), (7, 9), (14, 9) },
         };
-        return all.Take(count).ToList();
+
+        return layouts[count].ToList();
     }
 
     // ── Turn progression ────────────────────────────────────────────
