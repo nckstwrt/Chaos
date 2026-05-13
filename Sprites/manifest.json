@@ -1,0 +1,325 @@
+{
+  "creature_2": {
+    "name": "KING COBRA",
+    "frames": [
+      "creature_02_frame0.png",
+      "creature_02_frame1.png",
+      "creature_02_frame2.png"
+    ]
+  },
+  "creature_3": {
+    "name": "DIRE WOLF",
+    "frames": [
+      "creature_03_frame0.png",
+      "creature_03_frame1.png",
+      "creature_03_frame2.png"
+    ]
+  },
+  "creature_4": {
+    "name": "GOBLIN",
+    "frames": [
+      "creature_04_frame0.png",
+      "creature_04_frame1.png",
+      "creature_04_frame2.png"
+    ]
+  },
+  "creature_5": {
+    "name": "CROCODILE",
+    "frames": [
+      "creature_05_frame0.png",
+      "creature_05_frame1.png",
+      "creature_05_frame2.png"
+    ]
+  },
+  "creature_6": {
+    "name": "FAUN",
+    "frames": [
+      "creature_06_frame0.png",
+      "creature_06_frame1.png",
+      "creature_06_frame2.png"
+    ]
+  },
+  "creature_7": {
+    "name": "LION",
+    "frames": [
+      "creature_07_frame0.png",
+      "creature_07_frame1.png",
+      "creature_07_frame2.png"
+    ]
+  },
+  "creature_8": {
+    "name": "ELF",
+    "frames": [
+      "creature_08_frame0.png",
+      "creature_08_frame1.png",
+      "creature_08_frame2.png",
+      "creature_08_frame3.png"
+    ]
+  },
+  "creature_9": {
+    "name": "ORC",
+    "frames": [
+      "creature_09_frame0.png",
+      "creature_09_frame1.png",
+      "creature_09_frame2.png"
+    ]
+  },
+  "creature_10": {
+    "name": "BEAR",
+    "frames": [
+      "creature_10_frame0.png",
+      "creature_10_frame1.png",
+      "creature_10_frame2.png"
+    ]
+  },
+  "creature_11": {
+    "name": "GORILLA",
+    "frames": [
+      "creature_11_frame0.png",
+      "creature_11_frame1.png",
+      "creature_11_frame2.png"
+    ]
+  },
+  "creature_12": {
+    "name": "OGRE",
+    "frames": [
+      "creature_12_frame0.png",
+      "creature_12_frame1.png",
+      "creature_12_frame2.png"
+    ]
+  },
+  "creature_13": {
+    "name": "HYDRA",
+    "frames": [
+      "creature_13_frame0.png",
+      "creature_13_frame1.png",
+      "creature_13_frame2.png"
+    ]
+  },
+  "creature_14": {
+    "name": "GIANT RAT",
+    "frames": [
+      "creature_14_frame0.png",
+      "creature_14_frame1.png",
+      "creature_14_frame2.png"
+    ]
+  },
+  "creature_15": {
+    "name": "GIANT",
+    "frames": [
+      "creature_15_frame0.png",
+      "creature_15_frame1.png",
+      "creature_15_frame2.png"
+    ]
+  },
+  "creature_16": {
+    "name": "HORSE",
+    "frames": [
+      "creature_16_frame0.png",
+      "creature_16_frame1.png",
+      "creature_16_frame2.png"
+    ]
+  },
+  "creature_17": {
+    "name": "UNICORN",
+    "frames": [
+      "creature_17_frame0.png",
+      "creature_17_frame1.png",
+      "creature_17_frame2.png"
+    ]
+  },
+  "creature_18": {
+    "name": "CENTAUR",
+    "frames": [
+      "creature_18_frame0.png",
+      "creature_18_frame1.png",
+      "creature_18_frame2.png"
+    ]
+  },
+  "creature_19": {
+    "name": "PEGASUS",
+    "frames": [
+      "creature_19_frame0.png",
+      "creature_19_frame1.png",
+      "creature_19_frame2.png"
+    ]
+  },
+  "creature_20": {
+    "name": "GRYPHON",
+    "frames": [
+      "creature_20_frame0.png",
+      "creature_20_frame1.png",
+      "creature_20_frame2.png"
+    ]
+  },
+  "creature_21": {
+    "name": "MANTICORE",
+    "frames": [
+      "creature_21_frame0.png",
+      "creature_21_frame1.png",
+      "creature_21_frame2.png"
+    ]
+  },
+  "creature_22": {
+    "name": "BAT",
+    "frames": [
+      "creature_22_frame0.png",
+      "creature_22_frame1.png",
+      "creature_22_frame2.png"
+    ]
+  },
+  "creature_23": {
+    "name": "GREEN DRAGON",
+    "frames": [
+      "creature_23_frame0.png",
+      "creature_23_frame1.png",
+      "creature_23_frame2.png"
+    ]
+  },
+  "creature_24": {
+    "name": "RED DRAGON",
+    "frames": [
+      "creature_24_frame0.png",
+      "creature_24_frame1.png",
+      "creature_24_frame2.png"
+    ]
+  },
+  "creature_25": {
+    "name": "GOLDEN DRAGON",
+    "frames": [
+      "creature_25_frame0.png",
+      "creature_25_frame1.png",
+      "creature_25_frame2.png"
+    ]
+  },
+  "creature_26": {
+    "name": "HARPY",
+    "frames": [
+      "creature_26_frame0.png",
+      "creature_26_frame1.png",
+      "creature_26_frame2.png"
+    ]
+  },
+  "creature_27": {
+    "name": "EAGLE",
+    "frames": [
+      "creature_27_frame0.png",
+      "creature_27_frame1.png",
+      "creature_27_frame2.png"
+    ]
+  },
+  "creature_28": {
+    "name": "VAMPIRE",
+    "frames": [
+      "creature_28_frame0.png",
+      "creature_28_frame1.png",
+      "creature_28_frame2.png"
+    ]
+  },
+  "creature_29": {
+    "name": "GHOST",
+    "frames": [
+      "creature_29_frame0.png",
+      "creature_29_frame1.png",
+      "creature_29_frame2.png",
+      "creature_29_frame3.png"
+    ]
+  },
+  "creature_30": {
+    "name": "SPECTRE",
+    "frames": [
+      "creature_30_frame0.png"
+    ]
+  },
+  "creature_31": {
+    "name": "WRAITH",
+    "frames": [
+      "creature_31_frame0.png",
+      "creature_31_frame1.png",
+      "creature_31_frame2.png",
+      "creature_31_frame3.png"
+    ]
+  },
+  "creature_32": {
+    "name": "SKELETON",
+    "frames": [
+      "creature_32_frame0.png",
+      "creature_32_frame1.png",
+      "creature_32_frame2.png"
+    ]
+  },
+  "creature_33": {
+    "name": "ZOMBIE",
+    "frames": [
+      "creature_33_frame0.png",
+      "creature_33_frame1.png",
+      "creature_33_frame2.png",
+      "creature_33_frame3.png"
+    ]
+  },
+  "creature_34": {
+    "name": "BLOB",
+    "frames": [
+      "creature_34_frame0.png",
+      "creature_34_frame1.png",
+      "creature_34_frame2.png"
+    ]
+  },
+  "creature_35": {
+    "name": "FIRE",
+    "frames": [
+      "creature_35_frame0.png",
+      "creature_35_frame1.png",
+      "creature_35_frame2.png",
+      "creature_35_frame3.png"
+    ]
+  },
+  "wizard_1": {
+    "name": "JULIANLL",
+    "frames": [
+      "wizard_1_frame0.png"
+    ]
+  },
+  "wizard_2": {
+    "name": "GANDALFRT",
+    "frames": [
+      "wizard_2_frame0.png"
+    ]
+  },
+  "wizard_3": {
+    "name": "GREATFOGEY",
+    "frames": [
+      "wizard_3_frame0.png"
+    ]
+  },
+  "wizard_4": {
+    "name": "DYERARTI",
+    "frames": [
+      "wizard_4_frame0.png"
+    ]
+  },
+  "wizard_5": {
+    "name": "GOWIN",
+    "frames": [
+      "wizard_5_frame0.png"
+    ]
+  },
+  "wizard_6": {
+    "name": "MERLIN",
+    "frames": [
+      "wizard_6_frame0.png"
+    ]
+  },
+  "wizard_7": {
+    "name": "ILIAN RANE",
+    "frames": [
+      "wizard_7_frame0.png"
+    ]
+  },
+  "wizard_8": {
+    "name": "ASIMONO ZARK",
+    "frames": [
+      "wizard_8_frame0.png"
+    ]
+  }
+}

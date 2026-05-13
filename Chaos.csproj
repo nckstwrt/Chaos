@@ -5,4 +5,14 @@
     <RootNamespace>Chaos</RootNamespace>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Program.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Program.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Raylib C# bindings — fully managed, no unsafe, bundles native libs -->
+    <PackageReference Include="Raylib-cs" Version="6.*" />
+  </ItemGroup>
 </Project>
