@@ -65,6 +65,7 @@ public class RaylibGame
     private readonly SpriteStore _sprites = new();
     private readonly SpectrumFont _font = new();
     private readonly string _spritePath;
+    private readonly BeamEffect _beam = new();
 
     // ── UI state machine ─────────────────────────────────────────
     private enum Phase
@@ -146,6 +147,7 @@ public class RaylibGame
 
     private void HandleInput()
     {
+        if (_beam.IsActive) return;  // Block input during beam animation
         switch (_phase)
         {
             case Phase.Message:
@@ -241,6 +243,15 @@ public class RaylibGame
             if (_phase == Phase.Targeting)
             {
                 var wiz = _game.Wizards[_wizIdx];
+
+                var spell = wiz.SelectedSpell!;
+
+                // Start beam effect for ranged attack spells
+                if (spell.Category == SpellCategory.MagicAttack)
+                {
+                    _beam.Start(wiz.X, wiz.Y, _curX, _curY);
+                }
+
                 _msg1 = _spellCaster.CastSpell(wiz, _curX, _curY);
 
                 if (_spellCaster.RemainingPlacements > 0)
@@ -499,6 +510,12 @@ public class RaylibGame
 
     private void Update()
     {
+        if (_beam.IsActive)
+        {
+            _beam.Tick();
+            return; // Don't process AI or phase changes during beam
+        }
+
         // AI spell selection — auto-pick and advance
         if (_phase == Phase.SpellSelect)
         {
@@ -633,6 +650,9 @@ public class RaylibGame
         for (int bx = 0; bx < GameBoard.Width; bx++)
         for (int by = 0; by < GameBoard.Height; by++)
             DrawCell(bx, by);
+
+        // Beam effect (ranged attacks)
+        _beam.Draw(BoardX, BoardY, Cell);
 
         // Cursor
         if (_phase is Phase.Targeting or Phase.MultiPlace
@@ -780,6 +800,9 @@ public class RaylibGame
                 ? $"{wiz.Name} (0=pass,Up/Dn)"
                 : $"{wiz.Name} (0=pass)";
             _font.DrawString(header, 0, StatusY, wizCol);
+
+            if (!_beam.IsActive)
+                _beam.Start(wiz.X, wiz.Y, 6, 6);
 
             int maxShow = 2;
             for (int i = 0; i < maxShow && i + _scrollOff < avail.Count; i++)
